@@ -137,6 +137,25 @@ powershell -File "C:\Users\Russell Spurlock\.claude\scripts\stale-servers.ps1"
 
 Lists only. `-Kill` acts; `-MinAgeHours N` (default 2) protects anything currently in use.
 
+**Don't `npm install` in a throwaway clone unless you're actually going to build or run
+it.** Cloning a repo into `C:\temp` to read it, grep it, or diff it needs no dependencies —
+reading is what Read/Grep are for. Install only when a command genuinely requires the tree:
+`npm run build`, a dev server, a test run, a lint pass. If you're unsure whether you'll
+need it, don't — install later, when the need is real.
+
+This has teeth because the cleanup is disproportionately painful, not because the disk
+matters. A `node_modules` tree is ~100k files with paths past the Windows 260-char limit,
+so PowerShell's `Remove-Item` **fails partway through with a misleading "Could not find a
+part of the path"** and leaves a half-deleted mess. Clearing it takes a `robocopy /MIR`
+against an empty directory — the only tool that handles those paths — which Russell has to
+run himself, since deletes are denied here on purpose. One session on 2026-07-26 cloned
+~30 repos into its scratchpad and installed deps in twenty of them: **8.6 GB**, and a
+13-minute manual robocopy on 2026-08-01 to undo it.
+
+Same reasoning applies to worktrees — an `isolation: "worktree"` agent that only reads
+doesn't need an install either. And if you *do* install into a temp clone, say so at
+handoff, so the next session knows what's on disk and why.
+
 ---
 
 ## GitHub Issue Workflow — Bug Reports & Feedback
