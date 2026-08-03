@@ -4,6 +4,64 @@
 
 **Before writing code**, ask up to three clarifying questions if anything about the requirements, file locations, or existing conventions is ambiguous. This helps catch misunderstandings early and ensures the code aligns with the project's needs.
 
+## Debugging & verification — how to be right the first time (adopted 2026-08-03)
+
+Written after a session where **four of five "bugs" were not what they were filed as**, and the two genuinely dangerous defects were invisible in code review and in fifteen passing tests. Every miss had the same fix available for free, and it was always one command away. Ordered by how much time they save.
+
+### 1. Go to the raw data before you theorise. Always.
+
+The single highest-value habit. Before explaining *why* something is broken, look at the actual row, the actual file, the actual response body. A diagnosis built on a summary is a guess wearing a lab coat.
+
+Three real failures this would have prevented: an event count read off one row and attributed to another (written into an issue, a PR, a commit and a handoff before Russell corrected it in one sentence — the raw `.ics` took 30 seconds to check); a lesson declared missing because a dump printed only the first 40 of 475 rows; a "the start time didn't save" conclusion that was really a wrong attribute name.
+
+**When you catch yourself writing "this is probably because…", stop and go look instead.**
+
+### 2. Distrust any output that can truncate, and prove it didn't
+
+A tool that prints `[:40]` of a list, a `head`, a paginated API, a grep with a default limit. If a record is *absent* from output, that is not evidence it does not exist — until you have confirmed the output was complete. Prefer a targeted query over scanning a general-purpose dump.
+
+### 3. `getattr(obj, "name", None)` and `dict.get()` silently invent a `None` for a field that does not exist
+
+A wrong field name and a genuinely empty field look identical. That is how "the start time didn't save" happened when the field was populated and simply called something else. **Read the model or schema for the real field names first, or use direct attribute access so a typo raises.**
+
+### 4. Any tool that writes to a real external system: dry-run by default, printing the exact identifier it will touch
+
+Not "3 events will be written" — print the ID, UID, path or key for **every** row, and the verdict for each. This one rule caught two data-loss bugs on its first run: a sweep that would have deleted Russell's genuine Google Calendar events, and two database rows that would have fought over one calendar event forever. Neither was visible in review or in a green test suite.
+
+Make `--execute` a separate explicit flag. Read the dry run before using it.
+
+### 5. When something "doesn't happen", check the code path is CALLED before debugging the code path
+
+An entire day's premise was that a Google Calendar write was failing. It wasn't failing — **nothing ever called it.** The writer had three call sites, none covering the case in question, and the entry point could not even dispatch, having no `background_tasks` parameter.
+
+Corollary, and it inverts normal intuition: **an empty log can be evidence of no attempt, not of a silent failure.** Before hunting a swallowed exception, grep the call sites and prove the code runs at all.
+
+### 6. Verify the negative, and count the call sites
+
+"Nothing else uses this", "the feed is healthy", "only three places call it" — grep and count before asserting. An issue naming three places to change is a starting point, not an inventory: one this session named 3 and there were **7**. Also look for the near-miss you should *not* change (a similarly-named symbol meaning something different).
+
+### 7. A green build proves imports resolve. It proves nothing about the seams
+
+Check by hand what a build cannot see: does the new parameter actually reach the API, is that field real in the schema, does the refactored helper emit a **byte-identical** value where identity matters. Two such checks took two minutes and were the only real verification in that change.
+
+### 8. When you deliberately change behaviour, tests asserting the old behaviour SHOULD fail
+
+That is the suite doing its job. Rewrite them to the new intent and say so in the commit — never quietly edit a test until it passes, and never assume the failure is a bug in your change without reading what the test was pinning.
+
+### 9. Before restoring, undoing, or "fixing" user data, look for a live twin
+
+A hidden, cancelled or archived record is frequently hidden **on purpose**. Check for a sibling sharing its identity that is still live. Getting this wrong put a duplicate lesson on Russell's calendar minutes after he approved the restore — and the same check had been done correctly for a different record five minutes earlier.
+
+Corollary: in any production-write script, **assert the expected identity (name, date, owner) before writing and abort on mismatch.** A pinned id can go stale.
+
+### 10. Say plainly what you did NOT verify
+
+"Tests pass but I have never seen this run against the real system" is far more useful than confident silence. Every claim of verification should be something actually observed — and once it finally is, **read the external system back** rather than trusting the tool's own success message.
+
+---
+
+**Applies to subagents too.** When fanning out, pass the relevant rules into the prompt — an agent that doesn't know a dump truncates will draw the same wrong conclusion. Two agents must never write the same file; give the second one read-only investigation and sequence the fix.
+
 ## Browser tasks — use my Chrome extension, not the built-in Browser pane
 
 **Default to the Claude-in-Chrome extension (`mcp__claude-in-chrome__*`) for
@@ -158,6 +216,36 @@ handoff, so the next session knows what's on disk and why.
 
 ---
 
+## Issue triage — check the premise before debugging the mechanism (adopted 2026-08-03)
+
+**Measured, not felt: on 2026-08-02/03, nine of twelve issues worked were not what they were filed as.** That rate is not noise and it is not bad luck — it is a process gap, and it costs whole sessions. The failure is almost always the same shape: **the issue asserts a cause, and everyone debugs the asserted cause instead of the observed symptom.**
+
+### The four checks, before writing any code
+
+Cheap, mechanical, and each one caught a real miss:
+
+1. **Does it still reproduce?** An issue open for more than a few days may already be fixed. #602 was fixed *the day it was filed* and sat open for four; #409 had shipped every phase. Re-verify before working, and close it if it's done.
+2. **Has something recently touched this path?** `git log -20 --oneline -- <file>` before diagnosing. #807 was already fixed by a commit from the previous day; I filed a bug against code that had been repaired and then wrote a fix for it.
+3. **Is the code even called?** Grep the call sites before debugging the function. #804's entire premise was a failing write; nothing ever invoked it. **An empty log can mean no attempt, not a silent failure.**
+4. **Who else would see this?** Some "bugs" are artifacts of being the only user. #739's invite replies came back to Russell because he is currently the only person who can send an invite — the code was right. #798 is genuinely broken but unreachable until a second Google account exists.
+
+### The five failure modes, named so they can be spotted
+
+- **Symptom stated as cause.** "Write-target set but lessons aren't appearing" asserts the write-target is at fault. The observation was only *"lessons aren't on my calendar."*
+- **Stale-but-open.** Shipped and never closed. The tracker lies about state, and the next session believes it.
+- **Single-user artifact.** Correct behaviour that looks wrong because one person occupies every role.
+- **Latent, not live.** Real defect, unreachable on the current configuration. Worth fixing, wrong to chase as the cause of today's symptom.
+- **Nothing wrong.** #747 — manifest, icons and content-type all verified correct against live production. The honest deliverable is a precise report, **not a speculative change to code that checks out clean.**
+
+### How to file so this doesn't propagate
+
+- **Title the symptom, not the diagnosis.** "Lessons aren't reaching my Google calendar", not "Write-target setting is broken."
+- **Separate what was OBSERVED from what is SUSPECTED.** Observations go in the body; a hypothesis goes in a clearly-labelled section or a comment, and says it is a hypothesis. A guess promoted to a title becomes everyone's starting assumption.
+- **Say whether it was reproduced.** "Not yet reproduced" is a fact worth recording, and it is honest. Several issues were filed from reading code — that is fine, but it must be stated.
+- **When a fix lands, say which failure mode it was.** That is how the pattern becomes visible instead of recurring.
+
+**This applies hardest to issues Claude files.** A diagnosis written into a title, a PR, a commit and a handoff is very hard to dislodge — #807 was wrong in all four places before anyone questioned it. Write the symptom; keep the diagnosis in a comment where being wrong costs one edit.
+
 ## GitHub Issue Workflow — Bug Reports & Feedback
 
 **Applies to every session whose project is a git repository with a GitHub remote** (i.e. `gh` commands work against it). A project's own CLAUDE.md may refine this, but the default in any GitHub-backed repo is:
@@ -179,16 +267,21 @@ Every bug gets an issue **even if you fix it immediately** — the issue is the 
 
 ### Filing format
 
-- **Title:** short, specific symptom — "Login button unresponsive on mobile Safari", not "bug in app"
+- **Title: the SYMPTOM, never the diagnosis.** "Lessons aren't reaching my Google calendar", not "Write-target setting is broken" — the second one asserts a cause nobody has verified, and everyone who reads it starts debugging that cause. See "Issue triage" above for why this is the single highest-leverage rule here.
 - **Body template:**
 
 ```markdown
-**What happened:** <observed behavior>
+**What happened:** <observed behavior ONLY — no theory>
 **Expected:** <what should have happened>
 **Steps to reproduce:** <numbered steps, or "not yet reproduced">
 **Environment:** <device / browser / screen size, if relevant>
 **Reported:** <date> by Russell (via Claude session)
+
+**Suspected cause (HYPOTHESIS, unverified):** <optional — omit entirely rather than guess>
 ```
+
+- The hypothesis line is **optional and explicitly labelled**. A guess belongs where being wrong costs one edit, not in the title where it becomes everyone's starting assumption.
+- **"Not yet reproduced" is a fact, not an admission** — record it. An issue filed from reading code is legitimate; pretending it was observed is not.
 
 - File with: `gh issue create --title "..." --body "..." --label bug` (or `--label feedback`)
 - **Report the issue URL back to Russell** as a markdown link after filing.
