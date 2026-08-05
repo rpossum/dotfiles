@@ -1,5 +1,27 @@
 # Global Instructions — Russell Spurlock
 
+## How to talk to me — short, plain, easy to act on (adopted 2026-08-05)
+
+**This is the first rule for a reason. Get it wrong and every other rule stops mattering, because I stop reading.**
+
+Russell, in his own words: *"your explanations are becoming so long-winded and technical that I can't follow them"* and *"I feel like I'm missing things because you're so long-winded."*
+
+That second sentence is the real damage. It isn't that long answers are tiring — it's that **the things he actually has to know or do get buried, and he loses track of them.** Volume is not thoroughness; past a point it destroys the information it was meant to convey.
+
+**Do:**
+- **Answer in a few plain sentences.** Lead with what it means for him, or what he needs to decide. Then stop.
+- **Use layman's terms.** He's a CFII, not a developer. *"Someone who stole a server key could pretend to be you"* — not *"`require_user` routes on the unverified `alg` header."*
+- **Make anything he must do or decide unmissable.** It goes first, in one line, and it's the only thing that looks like an action item.
+- **State caveats plainly, in one sentence.** "I haven't tested this against a real one yet." Being brief NEVER means hiding bad news, uncertainty, or a mistake.
+
+**Don't:**
+- **No file paths, line numbers, function names, or code blocks in chat** unless he asked a code question. That evidence is valuable — put it in the GitHub issue or PR body, where the next session reads it and he never has to.
+- **No multi-section replies with headers and tables** to answer a question. Those belong in artifacts and issue bodies.
+- **Don't narrate the work.** He wants the outcome and the decision, not the route taken.
+- **Don't pre-empt questions he hasn't asked.** Depth is opt-in — he'll ask, and asking is cheap.
+
+**Watch for drift.** This crept in gradually across one long session; each message felt justified because every finding was real. The problem was cumulative. Every so often, check whether the last few replies would have been readable to someone who doesn't read code.
+
 ## Code Writing Workflow
 
 **Before writing code**, ask up to three clarifying questions if anything about the requirements, file locations, or existing conventions is ambiguous. This helps catch misunderstandings early and ensures the code aligns with the project's needs.
@@ -252,7 +274,7 @@ Cheap, mechanical, and each one caught a real miss:
 
 ### The rule
 
-When Russell reports a **bug** ("X is broken", "the app crashed when...", "this isn't working right") or gives **feedback** ("it would be better if...", "can we add...", usability gripes), do not let it live only in the conversation. **File it as a GitHub Issue in that project's repo** using the `gh` CLI, then continue the conversation.
+When Russell reports a **bug** ("X is broken", "the app crashed when...", "this isn't working right"), a **feature idea** (a new capability that doesn't exist yet), or **feedback** (a usability gripe or small tweak on something that already exists), do not let it live only in the conversation. **File it as a GitHub Issue in that project's repo** using the `gh` CLI, then continue the conversation.
 
 Every bug gets an issue **even if you fix it immediately** — the issue is the audit trail, and the fix commit references it.
 
@@ -261,9 +283,12 @@ Every bug gets an issue **even if you fix it immediately** — the issue is the 
 | Russell says... | Action |
 |---|---|
 | Something broke / crashed / wrong behavior | Issue labeled `bug` |
-| Feature idea, improvement, usability feedback | Issue labeled `feedback` |
+| A new capability that doesn't exist yet — something that needs real building (adopted 2026-08-05) | Issue labeled `feature` |
+| A usability gripe, small tweak, or copy/wording polish on something that already exists | Issue labeled `feedback` |
 | "What's open?" / "any bugs pending?" | `gh issue list` and summarize |
 | A fix request for an already-filed issue | Fix it; commit with `Fixes #N` |
+
+**`feature` vs `feedback` — the test:** does it require building something that doesn't exist (new component, new endpoint, new flow)? → `feature`. Is it a tweak, rewording, or polish on something already built? → `feedback`. Russell wants `feature` kept clean so he can pull `gh issue list --label feature` and run a session dedicated to "knock out the features I thought of," separate from bug fixes and small usability sanding. When genuinely borderline (e.g. "make this read-only section editable"), lean `feature` — the point is keeping build-scale ideas out of the feedback pile, not precision.
 
 ### Filing format
 
@@ -283,16 +308,17 @@ Every bug gets an issue **even if you fix it immediately** — the issue is the 
 - The hypothesis line is **optional and explicitly labelled**. A guess belongs where being wrong costs one edit, not in the title where it becomes everyone's starting assumption.
 - **"Not yet reproduced" is a fact, not an admission** — record it. An issue filed from reading code is legitimate; pretending it was observed is not.
 
-- File with: `gh issue create --title "..." --body "..." --label bug` (or `--label feedback`)
+- File with: `gh issue create --title "..." --body "..." --label bug` (or `--label feedback`, or `--label feature`)
 - **Report the issue URL back to Russell** as a markdown link after filing.
 - If key details are missing, ask at most 1–2 clarifying questions; otherwise file with what you have and note the gaps in the body.
 
 ### One-time setup (do automatically if missing)
 
-The `feedback` label doesn't exist in new repos. If filing with it fails, create it first:
+The `feedback` and `feature` labels don't exist in new repos. If filing with either fails, create it first:
 
 ```
-gh label create feedback --description "App feedback and feature suggestions" --color "1D76DB"
+gh label create feedback --description "App feedback and small usability tweaks" --color "1D76DB"
+gh label create feature --description "New capability ideas to build, separate from bug fixes and small usability feedback" --color "0E8A16"
 ```
 
 ### Closing the loop
