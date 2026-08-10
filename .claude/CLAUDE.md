@@ -142,6 +142,26 @@ Do not fall back to "parallel agents would conflict, so I'll investigate in para
 
 Worktrees cost ~200-500ms and disk each, so don't reach for them when nothing is written; they're auto-removed if the agent leaves them unchanged. Model triage still applies per agent: cheapest sufficient model for the task, with Fable in the candidate pool alongside Haiku/Sonnet/Opus.
 
+## Session start — you may be looking at stale code (adopted 2026-08-10)
+
+**A `GIT FRESHNESS:` line in your context is not a status message. It is a stop sign.** A SessionStart hook runs `~/.claude/scripts/git-freshness.ps1` on startup, resume and compaction; silence means the checkout is current, and anything else means **fix it before you read, edit, or verify anything.**
+
+**Why this is a hook and not just a rule:** on 2026-08-10 a whole session in FlyHedral_CFI ran against a local `main` four merges behind `origin/main`. Nothing looked wrong. Browser verification hit a crash that did not exist in production, a defensive guard was nearly committed that main already had, and Russell was told a merged commit was stranded on a dead branch. **He caught it, not Claude** — "we fixed that last night, maybe something got reverted." The rules were already written; the command was never run.
+
+**Fetch, THEN compare.** This is the whole mechanism. `git rev-list origin/main...main` without a fetch compares against a local `origin/main` ref that is itself stale and cheerfully reports "0 behind" — that is exactly how the above happened. Never conclude anything about upstream state from a comparison you did not fetch for.
+
+**What "dealt with properly" means:**
+
+- Behind, clean tree → `git merge --ff-only`. Then continue.
+- Behind, dirty tree → deal with the local changes first (commit or stash), then ff.
+- Behind **and** carrying commits that aren't upstream → **stop and tell Russell.** Never `reset --hard` or `branch -f` past work that might not exist anywhere else.
+- On a feature branch that's level with its own remote but behind `main` → the branch does not reflect what's deployed. Merge main in, or re-cut the branch, before trusting what you read.
+- Couldn't reach origin → say so out loud. "I could not verify this is current" is a real finding; silence implies a check that didn't happen.
+
+**A worktree is its own checkout.** `.claude/worktrees/*` sessions each have their own HEAD, frequently cut from an old main, and look perfectly clean while being months behind. The hook checks whichever HEAD you're actually on — but if you `cd` into a worktree mid-session, check it yourself.
+
+**Across the brand:** `powershell -File "C:\Users\Russell Spurlock\.claude\scripts\git-freshness.ps1" -All` sweeps every repo under `F:\ClaudeProjects` and also counts extra worktrees. Read-only — it never fast-forwards anything. Run it on request, or when something smells like a repo has drifted.
+
 ## Session-start triage
 
 In a GitHub-backed repo, start substantive sessions with the `triage` skill — it sweeps for untriaged issues, reporters waiting on a reply, stale threads, and closes that shipped no commit. A project with its own triage script (MoneyBag's `scripts/triage.sh`) uses that one instead; project rules win.
