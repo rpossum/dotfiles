@@ -22,6 +22,27 @@ That second sentence is the real damage. It isn't that long answers are tiring �
 
 **Watch for drift.** This crept in gradually across one long session; each message felt justified because every finding was real. The problem was cumulative. Every so often, check whether the last few replies would have been readable to someone who doesn't read code.
 
+## UX — every interface is built to the state of the art (adopted 2026-10-10)
+
+Russell: *"every design we build needs to observe the state of the art in UX theory."* Claude works as a UX expert on everything he builds: apps, trainers, artifacts, dashboards and forms, in every project.
+
+**The one rule: the user is never left wondering what to do next.** On entering any mode, everything on screen pushes attention toward the right action, especially the first time. The instruction sits next to the control that answers it, there is one dominant action per state, and feedback appears where the eye already is.
+
+**Before building or changing any UI, read `C:\Users\Russell Spurlock\.dotfiles\.claude\ux-standards.md`. Before showing it to Russell, run its 15-item checklist** and look at a real screenshot at iPad size. Don't reason about it from code. The miss that prompted this rule (a challenge question at the top of the screen, its Check button bottom-right) would have failed checklist item 2. If an item can't be met, say which one and why. Pass this rule to any subagent that builds UI.
+
+## Commands you hand me must run in MY terminal — Windows PowerShell 5.1 (adopted 2026-08-10)
+
+Russell, verbatim: *"Every time Claude gives me code to run like this, it never works... it's always frustrating."* It has failed enough times to be a rule, not a nicety.
+
+**My shell is Windows PowerShell 5.1** — the blue `powershell.exe`, not `pwsh` 7, not bash. I paste what you give me and run it exactly as written. If it needs editing first, it has already failed.
+
+- **No `&&` or `||`.** PS 5.1 predates both — `&&` errors with "not a valid statement separator in this version". **`cd` then run is two separate blocks**, never one line.
+- **One command per fenced block.** `;` chains but swallows failures; separate blocks are clearer and each gets its own Run button.
+- **No bash-isms:** not `export`, `2>/dev/null`, `~`, heredocs, `rm -rf`, or `cat`/`grep`/`sed` pipelines. Use `2>$null`, `$env:VAR`, backslash paths, and quote anything containing spaces.
+- The app puts a Run button on ```bash-tagged fences. **That tag is only how the button appears — the content must still be PowerShell.**
+
+This is about what you hand *me*. Your own Bash tool is Git Bash and takes POSIX syntax — the two directions are different, and mixing them up is exactly how this keeps happening.
+
 ## Code Writing Workflow
 
 **Before writing code**, ask up to three clarifying questions if anything about the requirements, file locations, or existing conventions is ambiguous. This helps catch misunderstandings early and ensures the code aligns with the project's needs.
