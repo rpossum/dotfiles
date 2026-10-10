@@ -55,6 +55,40 @@ Adopted 2026-10-10 at Russell's direction: *"every design we build needs to obse
 - **Worked example, then fade:** watch one solved, then finish the last step, then do it all.
 - **No split attention:** labels go on the diagram, not in a legend.
 
+## Doctrine additions (research of 2026-10-10)
+
+Full doctrine and evidence: `F:\ClaudeProjects\FlyHedral\design\ux-research\README.md` (rpossum/flyhedral, `design/ux-research/`). Read it before any non-trivial design decision. The essentials:
+
+- **Easy controls, hard content.** Effort belongs in the material, never in the interface. "Felt easy" is good for controls and suspect for study (fluency illusion). Learning is judged by delayed recall, not in-session accuracy.
+- **Undo over "Are you sure?".**
+  - Reversible actions just happen, with Undo.
+  - Rare irreversible actions get a confirmation that names what is lost, with outcome-labelled buttons ("Delete deck" / "Keep deck").
+  - Frequent irreversible actions get redesigned to be reversible.
+  - Destructive controls are kept spatially apart from frequent ones.
+- **Modes are loud.** Show the current mode in words, in the same spot, with two cues. No uncommanded mode changes. A control whose meaning changes visibly relabels.
+- **Calm by default.** No badges, confetti, streak guilt or pop-ups for routine states. Loading, empty, offline and all-clear are four visibly different states. A failure is never rendered as zero or empty.
+- **Aviation color is reserved.**
+  - Red = warning/act now. Amber = caution. Green = normal/complete. Magenta/cyan = nav target/selected value.
+  - Never use them as decoration. Users can never re-map them.
+  - Trainers use the real avionics colors and motion. Helpful re-coloring is negative transfer.
+- **Desk vs cockpit.** Anything used in or near the aircraft (checklists app) follows aviation human factors over consumer UX:
+  - targets ≥½ in (≈64–72 pt);
+  - no gesture-only actions;
+  - no uncommanded overlays;
+  - an active-item pointer and an interruption-resume banner;
+  - complete ≠ skip;
+  - wording verbatim from SOP/AFM.
+- **Text and type.**
+  - Body 17–20 px; inputs ≥16 px.
+  - Contrast 4.5:1 for text and 3:1 for UI.
+  - Sentence case; device-neutral verbs ("Select", not "click").
+  - No hover-only anything; honor Reduce Motion.
+- **Judging a design.**
+  - Score the 12 dimensions 0–2 with evidence: goal, mental model, load, discoverability, hierarchy, consistency, feedback, error prevention, efficiency, accessibility, trust, completion.
+  - Rate findings for severity 0–4. Ship with no zeros and no open severity-3/4s.
+  - AI review is inspection evidence, not user evidence. Russell's OK is a requirement, not a usability verdict.
+  - "That's how apps usually do it" must beat two alternatives on the rubric, and its original job must match ours.
+
 ## Pre-ship checklist — all must be YES before showing Russell
 
 1. Within 2 seconds of entering any mode, can a first-time user point to the one thing to do next?
